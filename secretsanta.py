@@ -18,17 +18,55 @@ class Santadriver(object):
         #a dict containing name/email pairs
         self.people = config['people']
         #a list containing pairs of people who should not be secret santas to each other
-        self.exclusion_groups = config['exclusion_groups']
-
+        exclusion_couples = config['exclusion_couples']
+        #a list of pairs people who should not be secret santas to the second person (i.e. last year's santas)
+        exclusion_list = config['exclusion_list']
+        self.exclusion_dict = self.generate_exclusion_dict(exclusion_couples,exclusion_list)
         random.seed(self.HIDDENSEED)
+
+    def validate_exclusion_lists(self,exclusion_lists):
+        """
+        Validate that all the people in the exclusion lists are in the people being referenced.
+        """
+        missing_people = []
+        for pair  in exclusion_lists:
+            for person in pair:
+                if person not in self.people:
+                    missing_people.append(person)
+        if len(missing_people) > 0:
+            print "The following people are referenced, but not found: \n\t%s"%'\n\t'.join(missing_people)
+            raise Exception("PeopleNotFound")
+
+    def generate_exclusion_dict(self,exclusion_couples,exclusion_list):
+        """generate_exclusion_dict(exclusion_couples,exclusion_list) -> exclusion_dict
+           reorganizes the exclusion data into a dictionary of santas and people they are excluded from gifting to
+        """
+
+        self.validate_exclusion_lists(exclusion_couples + exclusion_list)
+
+        santas = self.people.keys()
+        exclusion_dict = dict()
+        for santa in santas:
+            exclusions_for_santa= []
+            for pair in exclusion_couples:
+                if pair[0] == santa:
+                    exclusions_for_santa.append(pair[1])
+                elif pair[1] == santa:
+                    exclusions_for_santa.append(pair[0])
+            for pair in exclusion_list:
+                if pair[0] == santa:
+                    exclusions_for_santa.append(pair[1])
+            exclusion_dict[santa] = exclusions_for_santa
+            print santa, "excludes\n", exclusions_for_santa
+        return exclusion_dict
 
     def is_excluded(self, santas, exclusion_dict):
         """is_excluded(santas, exclusion_dict) -> True if any santa pair is specified by the
         exclusion dict, False otherwise"""
         for i in range(len(santas)):
-            recipiant = santas[(i + 1) % len(santas)]
+            recipient = santas[(i + 1) % len(santas)]
             santa = santas[i]
-            if recipiant in exclusion_dict[santa]:
+            if recipient in exclusion_dict[santa]:
                 return True
         return False
 
@@ -36,24 +74,12 @@ class Santadriver(object):
         """calculate_santa_order() -> returns a list of santas which satisfies all the exclusions specified"""
         santas = self.people.keys()
 
-        #test exclusion groups
-        exclusion_dict = dict()
-        for santa in santas:
-            ex = []
-            for group in self.exclusion_groups:
-                if group[0] == santa:
-                    ex.append(group[1])
-                elif group[1] == santa:
-                    ex.append(group[0])
-            exclusion_dict[santa] = ex
-            print santa, "excludes\n", ex
-        for group in self.exclusion_groups:
-            if not ( group[0] in santas and group[1] in santas ):
-                raise Exception("Exclusion groups contain people not in santas")
-
         i = 0
-        while self.is_excluded(santas, exclusion_dict):
+        while self.is_excluded(santas, self.exclusion_dict):
             i += 1
+            if i % len(santas)**4 == 0 and i > 0:
+                print i
+                print "It is taking a long time to find a gift giving pattern that works. Check to verify that no member has been fully excluded by exclusion rules."
             random.shuffle(santas)
 
         print "Found assignment after only %d shuffles!" % i

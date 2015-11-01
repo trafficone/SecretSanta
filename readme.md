@@ -14,7 +14,10 @@ To run, the following prerequisite Python packages need to be installed:
  - simplejson
  - boto
 
-Then simply create a config.json to include the contact information, exclusion pairs, and AWS credential information.
+Then simply create a config.json to include the contact information,
+exclusion couples (pairs of people who shouldn't get gifts for each other),
+exclusion list (potential senders who shouldn't send gifts to a recipient for some reason),
+and AWS credential information.
 A sample config.json looks like this:
 
     {"Name":"SampleConfig",
@@ -23,7 +26,8 @@ A sample config.json looks like this:
     "aws_secret":"",
     "from_email":"email@domain.com",
     "people":{"name":"email"},
-    "exclusion_groups":[["name","name"]]}
+    "exclusion_couples":[["brother","sister"]],
+    "exclusion_list":[["sender","excluded recipient"]]}
 
-Do not share this config.json, this should go without saying, but
+Do not share this config.json, this should go without saying, but...
 
