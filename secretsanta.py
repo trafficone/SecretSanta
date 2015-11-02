@@ -41,7 +41,6 @@ class Santadriver(object):
         """generate_exclusion_dict(exclusion_couples,exclusion_list) -> exclusion_dict
            reorganizes the exclusion data into a dictionary of santas and people they are excluded from gifting to
         """
-
         self.validate_exclusion_lists(exclusion_couples + exclusion_list)
 
         santas = self.people.keys()
@@ -89,7 +88,7 @@ class Santadriver(object):
         """email_santas(santas = None) --> email secret santas where each santa is a santa to the next person in the list santas"""
         santas = self.calculate_santa_order()
         subject = "Your Secret Santa Assignment"
-        sesconn = ses.connection.SESConnection(aws_access_key_id=self.AWS_ACCESS_KEY_ID,
+        sesconn = ses.connect_to_region('us-west-2',aws_access_key_id=self.AWS_ACCESS_KEY_ID,
                                                aws_secret_access_key=self.AWS_SECRET_ACCESS_KEY)
 
         print self.FROM
