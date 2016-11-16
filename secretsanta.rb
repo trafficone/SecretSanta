@@ -1,17 +1,18 @@
-require #AWS FIXME
-#random?
-#json for ruby
+require 'aws-sdk'
+require 'json'
 
 class Santadriver{
 #HO HO HO! Santa Driver takes the people who are in your config.json and
 #    emails them who they are a secret santa to! You can tell it who can't #be a secret santa
 #    be they, siblings, SO's, or naughty ones who don't get along.
-    def initialize(config)
+    def initialize(config,debug)
     #TODO: test for key in config before setting values
-        @debug = false #FIXME: ruby ternary
-        @HIDDENSEED = 0 #same
-        @AWS_ACCESS_KEY_ID = config[:aws_key_id]
-        @AWS_SECRET_ACCESS_KEY = config[:aws_secret]
+        @debug = debug
+        @HIDDENSEED = if config.keys().include?('randomseed') ? config['randomseed'] : 0
+        @AWS_ACCESS_KEY_ID = config['aws_key_id']
+        @AWS_SECRET_ACCESS_KEY = config['aws_secret']
+        Aws.config[:credentials] = Aws::Credentials.new(@AWS_ACCESS_KEY_ID,@AWS_SECRET_ACCESS_KEY)
+        
         @FROM = config[:from_email]
         @people = config[:people]
         
@@ -40,9 +41,6 @@ class Santadriver{
     end
         
     def generate_exclusion_dict(exclusion_couples,exclusion_list) 
-    #
-    #
-    #
         validate_exclusion_lists (exclusion_couples + exlusion_list)
         
         santas = @people.keys()
@@ -68,6 +66,59 @@ class Santadriver{
         return exclusion_dict
     }
     
-    def is_excluded(santas, exclusion_dict){
+    def is_excluded(santas, exclusion_dict)
+        for i in (0..santas.length() -1).to_a
+            recipient = santas[(i+1) % santas.length()]
+            santa = santas[i]
+            if recipient in exclusion_dict[santa]
+                return true
+            end
+        end
+        return false
+    end
+    
+    def calculate_santa_order
+        santas = @people.keys()
+        i = 0
+        while is_excluded(santas, @exclusion_dict):
+            i += 1
+            if i % ( santas.length ** 4 ) == 0 and i > 0:
+              puts i
+              puts "It is taking a long time to find a gift-giving pattern that works.
+                check to verify that no member has been fully excluded by exclusion rules."
+            end
+            santas.shuffle!()
+        end
         
-    }
+        puts "Found assignment after #{i} shuffles!"
+        return santas
+    
+    def email_santas
+        santas = calculate_santa_order()
+        subject = "Your Secret Santa Assignment"
+        ses = Aws::SES::Client.new(region: 'us-west-2')
+            #:region => 'us-west-2',
+            #:access_key_id => @AWS_ACCESS_KEY_ID,
+            #:secret_access_key => @AWS_SECRET_ACCESS_KEY)
+        puts @FROM
+        for t in santas:
+            assignment = (santas.index(t) + 1) % santas.length()
+            message = "Dear #{t},\n"
+                      " You have been assigned to be a secret santa to #{santas[assignment]} (email: #{@people[santas[assignment]]}).\n"
+                      " Please check their address and wishlist. Check it twice.\n"
+                      "\n"
+                      "Chrismas is December 25, make me proud.\n"
+                      "\n"
+                      "Ho! Ho! Ho!\n"
+                      "Santa \"Father Christmas\" Claus\n"
+            ses.send_email({destination: {to_addresses: [ @people[t] ]},
+                message: {body: {text: { data: message }}, 
+                          subject: { data: subject}},
+                source: @FROM)
+        end
+    end
+
+if __FILE__ == $0
+    config = JSON.load(File.read('config.json'))
+    s = Santadriver.new(config,false)
+    s.email_santas()
