@@ -37,6 +37,8 @@ class Santadriver(object):
             print "The following people are referenced, but not found: \n\t%s"%'\n\t'.join(missing_people)
             raise Exception("PeopleNotFound")
 
+            
+            
     def generate_exclusion_dict(self,exclusion_couples,exclusion_list):
         """generate_exclusion_dict(exclusion_couples,exclusion_list) -> exclusion_dict
            reorganizes the exclusion data into a dictionary of santas and people they are excluded from gifting to
