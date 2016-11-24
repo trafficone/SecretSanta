@@ -1,24 +1,34 @@
 require 'rubygems'
 require 'sinatra'
 require 'haml'
+require 'sequel'
+#requires sqlite3 gem to be installed
+
+#TODO: User ID needs to be passed with some sort of session ID in cookies
+
+configure do
+	Sequel.connect(ENV['DATABASE_URL'] || 'sqlite://chmny.db')
+end
 
 $LOAD_PATH.unshift(File.dirname(__FILE__) + '/lib')
 require 'models'
 
 set :environment, 'development'
-set :public, 'public'
+set :public_dir, 'public'
 set :views, 'views'
 
 helpers do
     def user_is_authorized?
-        request.cookies['userid'] == 
+        #FIXME: this isn't auth
+        return request.cookies['userid'] == request.params['userid'] 
     end
     def auth
-        stop [ 401, 'Not authorized'] unless 
+        stop [ 401, 'Not authorized'] unless user_is_authorized?()
     end
 end
 #get landing 
 get '/' do
+    #FIXME: this just fails
     haml("= render_login_logout", :layout => :layout)
 end
 
@@ -39,12 +49,13 @@ end
 get '/admin' do
     #TODO: Need admin portal template
     auth #FIXME: how does this work?
-    user = User[adminid]
-    if user.is_admin?() do
-        return "You are an admin"
+    user = User[params[:userid]]
+    if user != nil and user.is_admin?() 
+        ret = "You are an admin"
     else
-        return "You are not an admin"
+        ret = "You are not an admin"
     end
+    return ret
 end
 
 #create new santa path
@@ -61,12 +72,13 @@ post '/admin/email_users' do
 end
 
 #get admin config panel
-get '/admin/config'
+get '/admin/config' do
     #TODO: create admin config panel
     return "Admin config! WOO"
 end
 
-post '/admin/config/:setting'
+#set general config setting
+#post '/admin/config/:setting' do
 
 #get user portal
 get '/user' do
@@ -115,11 +127,12 @@ post '/user/edit/:property' do |property|
     else
         return "Error: invalid property"
     end
-    if user.valid?() do
+    if user.valid?() 
         user.save()
         return "Update successful"
     else
         return "Error: invalid data: #{user.errors}"
+    end
 end
 
 #get couple portal
@@ -127,7 +140,7 @@ get '/couple' do
     auth
     #TODO: Create couple portal
     #   - list existing couples 
-    Couple.
+    Couple.all()
     return "Couples!"
 end
 
@@ -152,8 +165,8 @@ post '/couple/create' do
     #       WHERE (creator_userid = params[:userid] AND chimney_userid = params[:chimney_userid])
     #          OR (creator_userid = params[:chimney_userid] AND chimney_userid = params[:userid]))
     couple_exists = TODO
-    unless couple_exists do
-        couple = Couple.new(:creator_userid = params[:userid], :chimney_userid = params[:chimney_userid])
+    unless couple_exists 
+        couple = Couple.new(:creator_userid => params[:userid], :chimney_userid => params[:chimney_userid])
         couple.save
         return "Couple created"
     else
@@ -167,7 +180,7 @@ post '/couple/delete' do
     #FIXME: can either member of a couple delete the couple?
     auth
     couple = Couple.filter(:id => params[:couple_id])
-    if couple.creator_userid = params[:userid] or couple.chimney_userid = params[:userid] do
+    if couple.creator_userid = params[:userid] or couple.chimney_userid = params[:userid] 
         couple.destroy()
         return "Couple deleted"
     else

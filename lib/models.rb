@@ -1,44 +1,46 @@
 require 'date'
 require 'sequel'
-require 'digest/sha256'
+require 'digest/sha2'
 
 class User < Sequel::Model
-    if not table_exists?() do
+    plugin :schema
+    if not table_exists?() 
         set_schema() do
             primary_key(:id)
-            column(:name, :string, :empty => false)
-            column(:email, :string, :empty => false
-            column(:access_level, :string, :empty => false, :default => 'User')
-            column(:contact_info, :string)
-            column(:auth_credentials, :string, :empty => false)
+            column(:name, :text, :empty => false)
+            column(:email, :text, :empty => false)
+            column(:access_level, :text, :empty => false, :default => 'User')
+            column(:contact_info, :text)
+            column(:auth_credentials, :text, :empty => false)
         end
         create_table()
     end
     
-    def self.digest_password(password) do
+    def self.digest_password(password) 
         #FIXME: THIS IS TERRIBLE! DO NOT COMMIT SALTS!
         return Digest::SHA256.hexdigest('awfulsalt' + password)
     end
     
-    def auth_user?(password) do
+    def auth_user?(password) 
         return digest_password(password) == auth_credentials
     end
     
-    def is_admin?() do
+    def is_admin?() 
         return access_level == 'Admin'
     end
     
 end
 
 class SantaEvent < Sequel::Model
-    if not table_exists?() do
+    plugin :schema
+    if not table_exists?() 
         set_schema() do
             primary_key(:id)
             column(:date_start, :date, :empty => false)
-            column(:date_end, :date, :empty => false
-            column(:date_deadline, :date, :empty => false
-            column(:spend_limit, :integer)
-            column(:metadata)
+            column(:date_end, :date, :empty => false)
+            column(:date_deadline, :date, :empty => false)
+            column(:spend_limit, :float)
+            column(:metadata, :text)
         end
         create_table()
     end
@@ -50,7 +52,8 @@ class SantaEvent < Sequel::Model
 end
 
 class SantaPath < Sequel::Model
-    if not table_exists?() do
+    plugin :schema
+    if not table_exists?() 
         set_schema() do
             primary_key(:id)
             foreign_key(:santaeventid,:santaevent,:key=>:id)
@@ -60,13 +63,16 @@ class SantaPath < Sequel::Model
         create_table()
     end
     
-    def self.get_full_path(eventid) do
-        
+    def self.get_full_path(eventid) 
+        #FIXME: provide full path
+        return [0] 
     end
 end
-    
-class Couples < Sequel::Model
-    if not table_exists?() do
+   
+   
+class Couple < Sequel::Model
+    plugin :schema
+    if not table_exists?() 
         set_schema() do
             primary_key(:id)
             foreign_key(:creator_userid,:user,:key=>:id)
